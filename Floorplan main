@@ -1,0 +1,1547 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Easy Room Floorplan Maker — Simple 3-Step iPad Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+        .touch-btn {
+            min-height: 54px;
+            transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .touch-btn:active {
+            transform: scale(0.97);
+        }
+        .blueprint-grid {
+            background-color: #ffffff;
+            background-size: 32px 32px;
+            background-image:
+                linear-gradient(to right, rgba(37, 99, 235, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(37, 99, 235, 0.08) 1px, transparent 1px);
+        }
+        @media print {
+            body {
+                background: #ffffff !important;
+                overflow: visible !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            #printSheetContainer {
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-100 text-slate-900">
+
+    <header class="no-print bg-white border-b-2 border-slate-200 px-4 py-3 shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+            <!-- Brand Title -->
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md font-extrabold text-xl">
+                        🏠
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Easy Floorplan Maker</h1>
+                        <p class="text-sm text-slate-600 font-medium">Measure your room in 3 simple steps</p>
+                    </div>
+                </div>
+                <button onclick="openScanHelpModal()" class="md:hidden px-3.5 py-2.5 rounded-xl bg-amber-100 text-amber-900 font-bold text-sm border border-amber-300">
+                    ❓ Help
+                </button>
+            </div>
+
+            <!-- 3-Step Guided Wizard Buttons -->
+            <nav class="grid grid-cols-3 gap-2 w-full md:w-auto bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                <button onclick="goToStep(1)" id="wizardTab1" class="touch-btn px-3 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 bg-blue-600 text-white shadow">
+                    <span class="w-7 h-7 rounded-full bg-white text-blue-600 font-extrabold flex items-center justify-center text-sm shrink-0">1</span>
+                    <span>Pick or Scan Room</span>
+                </button>
+                <button onclick="goToStep(2)" id="wizardTab2" class="touch-btn px-3 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 text-slate-600 hover:bg-white">
+                    <span class="w-7 h-7 rounded-full bg-slate-300 text-slate-800 font-extrabold flex items-center justify-center text-sm shrink-0">2</span>
+                    <span>View & Adjust</span>
+                </button>
+                <button onclick="goToStep(3)" id="wizardTab3" class="touch-btn px-3 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 text-slate-600 hover:bg-white">
+                    <span class="w-7 h-7 rounded-full bg-slate-300 text-slate-800 font-extrabold flex items-center justify-center text-sm shrink-0">3</span>
+                    <span>Print & Save</span>
+                </button>
+            </nav>
+
+            <!-- Easy Help Button -->
+            <button onclick="openScanHelpModal()" class="hidden md:flex touch-btn px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-base items-center gap-2 border-2 border-amber-300 shrink-0">
+                <span>❓ How to Scan on iPad</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Friendly Reassuring Notification Banner -->
+    <div id="friendlyToast" class="no-print hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-700 text-white px-6 py-4 rounded-2xl shadow-2xl border-2 border-emerald-400 flex items-center gap-3 text-base sm:text-lg font-bold max-w-xl w-[92%] justify-center text-center">
+        <span>✅</span>
+        <span id="friendlyToastText">Your room is ready!</span>
+    </div>
+
+    <main class="flex-1 flex flex-col max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- ==================== STEP 1: START / SCAN / PICK A ROOM ==================== -->
+        <section id="step1Section" class="space-y-6 my-auto py-2">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="inline-block px-4 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-sm uppercase tracking-wide">Step 1 of 3</span>
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900">How would you like to start?</h2>
+                <p class="text-base sm:text-lg text-slate-600">Tap any of the big buttons below. You cannot break anything—you can always undo or start over!</p>
+            </div>
+
+            <!-- 3 Giant Choice Cards -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Option A: Load iPad Scan File -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 border-2 border-blue-500 shadow-lg flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-4xl">
+                            📂
+                        </div>
+                        <div class="inline-block px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs uppercase">Most Accurate (Uses iPad LiDAR)</div>
+                        <h3 class="text-2xl font-extrabold text-slate-900">1. Load My iPad Scan File</h3>
+                        <p class="text-base text-slate-600 leading-relaxed">
+                            Already scanned your room with the free <strong>3D Scanner App</strong> on your iPad? Tap below to pick your saved file and turn it into a floorplan automatically.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <input id="scanFileInput" type="file" accept=".json,.obj,.glb,.gltf,.usdz,.zip" class="hidden" onchange="handleEasyFileUpload(event)">
+                        <button onclick="document.getElementById('scanFileInput').click()" class="touch-btn w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-lg shadow-lg shadow-blue-600/25 flex items-center justify-center gap-3">
+                            <span>📂 Tap to Pick Scan File</span>
+                        </button>
+                        <button onclick="openScanHelpModal()" class="touch-btn w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base">
+                            Show me how to scan on my iPad →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Option B: Point & Tap Camera Measurer -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-500 shadow-lg flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-4xl">
+                            📷
+                        </div>
+                        <div class="inline-block px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-xs uppercase">No Other App Needed</div>
+                        <h3 class="text-2xl font-extrabold text-slate-900">2. Measure with iPad Camera</h3>
+                        <p class="text-base text-slate-600 leading-relaxed">
+                            Stand in the middle of your room, point your iPad camera at each corner on the floor, and tap one big green button to connect the walls.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <button onclick="openCameraMeasureModal()" class="touch-btn w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-lg shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-3">
+                            <span>📷 Open Camera Measurer</span>
+                        </button>
+                        <p class="text-sm text-center text-slate-500 font-medium">Takes about 30 seconds right in this screen</p>
+                    </div>
+                </div>
+
+                <!-- Option C: Try a Pre-Made Room Template -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-300 shadow-lg flex flex-col justify-between space-y-6">
+                    <div class="space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-4xl">
+                            📐
+                        </div>
+                        <div class="inline-block px-3 py-1 rounded-lg bg-amber-50 text-amber-800 font-bold text-xs uppercase">Great for Practice or Quick Edits</div>
+                        <h3 class="text-2xl font-extrabold text-slate-900">3. Start with a Sample Room</h3>
+                        <p class="text-base text-slate-600 leading-relaxed">
+                            Pick a standard room shape below and simply drag the walls with your finger to match your room's measurements.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2.5 pt-2">
+                        <button onclick="loadPresetAndGo('living')" class="touch-btn w-full py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-blue-50 hover:border-blue-400 border-2 border-slate-200 font-bold text-base text-slate-800 flex items-center justify-between">
+                            <span>🛋️ Living Room (L-Shaped)</span>
+                            <span class="text-blue-600 font-extrabold">Open →</span>
+                        </button>
+                        <button onclick="loadPresetAndGo('bedroom')" class="touch-btn w-full py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-blue-50 hover:border-blue-400 border-2 border-slate-200 font-bold text-base text-slate-800 flex items-center justify-between">
+                            <span>🛏️ Master Bedroom (Rectangle)</span>
+                            <span class="text-blue-600 font-extrabold">Open →</span>
+                        </button>
+                        <button onclick="loadPresetAndGo('kitchen')" class="touch-btn w-full py-3.5 px-4 rounded-xl bg-slate-100 hover:bg-blue-50 hover:border-blue-400 border-2 border-slate-200 font-bold text-base text-slate-800 flex items-center justify-between">
+                            <span>🍳 Kitchen & Dining Area</span>
+                            <span class="text-blue-600 font-extrabold">Open →</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== STEP 2: VIEW & ADJUST MY FLOORPLAN ==================== -->
+        <section id="step2Section" class="hidden flex-1 flex flex-col space-y-4">
+
+            <!-- Top Summary Bar with Big Numbers & Room Name -->
+            <div class="bg-white rounded-2xl p-4 border-2 border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <label for="roomNameInput" class="text-sm font-bold text-slate-500 uppercase">Room Name:</label>
+                    <input id="roomNameInput" type="text" value="Family Living Room" oninput="updateRoomName(this.value)" class="text-xl sm:text-2xl font-extrabold text-slate-900 bg-slate-100 border-2 border-slate-300 rounded-xl px-3.5 py-1.5 focus:border-blue-600 focus:outline-none w-60 sm:w-72">
+                </div>
+
+                <!-- Big Readable Room Measurements -->
+                <div class="flex flex-wrap items-center gap-3 sm:gap-6">
+                    <div class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-xl">
+                        <div class="text-xs font-bold text-blue-700 uppercase">Total Floor Area</div>
+                        <div id="bigSqFtDisplay" class="text-xl sm:text-2xl font-extrabold text-blue-950">342 sq ft</div>
+                    </div>
+                    <div class="bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl">
+                        <div class="text-xs font-bold text-slate-600 uppercase">Total Wall Length</div>
+                        <div id="bigPerimeterDisplay" class="text-xl sm:text-2xl font-extrabold text-slate-900">76 ft 4 in</div>
+                    </div>
+                    <button onclick="goToStep(3)" class="touch-btn px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base sm:text-lg shadow-md flex items-center gap-2">
+                        <span>🖨️ Next: Print or Save →</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simple One-Tap Action Toolbar -->
+            <div class="bg-white rounded-2xl p-3 border-2 border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="setSimpleTool('move')" id="easyTool-move" class="touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-blue-600 text-white shadow flex items-center gap-2">
+                        <span>👆 Move Corners</span>
+                    </button>
+                    <button onclick="setSimpleTool('door')" id="easyTool-door" class="touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center gap-2">
+                        <span>🚪 + Add a Door</span>
+                    </button>
+                    <button onclick="setSimpleTool('window')" id="easyTool-window" class="touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center gap-2">
+                        <span>🪟 + Add a Window</span>
+                    </button>
+                    <button onclick="setSimpleTool('split')" id="easyTool-split" class="touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center gap-2">
+                        <span>➕ Add Wall Corner</span>
+                    </button>
+                    <button onclick="straightenAllWalls()" class="touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-300 flex items-center gap-2">
+                        <span>📐 Straighten Walls</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="undoLastChange()" id="undoBtn" class="touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 flex items-center gap-1.5">
+                        <span>↩️ Undo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Plain-English Helper Instruction Banner + Exact Wall Length Editor -->
+            <div class="bg-blue-950 text-white rounded-2xl px-5 py-3.5 flex flex-col lg:flex-row items-center justify-between gap-4 shadow">
+                <div class="flex items-center gap-3 text-base sm:text-lg font-semibold">
+                    <span class="text-2xl">💡</span>
+                    <span id="helperInstructionBanner">Drag any blue circle with your finger to move a corner, or tap a wall to type its exact length.</span>
+                </div>
+
+                <!-- Selected Wall Length Quick Setter (Feet & Inches) -->
+                <div class="flex flex-wrap items-center gap-2 bg-blue-900/90 px-4 py-2 rounded-xl border border-blue-400/30 shrink-0">
+                    <span id="selectedWallTitle" class="font-bold text-sm text-cyan-300 mr-1">Selected Wall #1:</span>
+                    <div class="flex items-center gap-1">
+                        <input id="wallFeetInput" type="number" min="1" max="80" value="14" class="w-16 h-11 rounded-lg bg-white text-slate-900 font-extrabold text-lg text-center border-2 border-blue-400">
+                        <span class="font-bold text-sm">ft</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input id="wallInchesInput" type="number" min="0" max="11" value="0" class="w-16 h-11 rounded-lg bg-white text-slate-900 font-extrabold text-lg text-center border-2 border-blue-400">
+                        <span class="font-bold text-sm">in</span>
+                    </div>
+                    <button onclick="applyFeetInchesWallLength()" class="h-11 px-4 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold text-sm shadow">
+                        Set Length
+                    </button>
+                </div>
+            </div>
+
+            <!-- Side-by-Side 2D Floorplan & 3D Dollhouse View -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-[480px]">
+                
+                <!-- Left: 2D Floorplan Canvas (7 cols) -->
+                <div class="lg:col-span-7 bg-white rounded-3xl border-2 border-slate-300 shadow-md flex flex-col overflow-hidden relative min-h-[420px]">
+                    <div class="bg-slate-100 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-blue-600"></span>
+                            <span class="font-extrabold text-base text-slate-800">2D Room Floorplan (Feet & Inches)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="zoom2D(1.15)" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 font-extrabold text-slate-800 hover:bg-slate-50 text-base">🔍 +</button>
+                            <button onclick="zoom2D(0.85)" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 font-extrabold text-slate-800 hover:bg-slate-50 text-base">🔍 −</button>
+                            <button onclick="center2DView()" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 text-sm">Center</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 relative blueprint-grid">
+                        <canvas id="canvas2D" class="w-full h-full cursor-pointer"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right: 3D Dollhouse Preview (5 cols) -->
+                <div class="lg:col-span-5 bg-slate-900 rounded-3xl border-2 border-slate-300 shadow-md flex flex-col overflow-hidden relative min-h-[380px]">
+                    <div class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex items-center justify-between text-white">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+                            <span class="font-extrabold text-base">3D Dollhouse View</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="set3DViewAngle('angled')" class="px-3 py-1 rounded-lg bg-blue-600 text-white font-bold text-xs">3D Tilt</button>
+                            <button onclick="set3DViewAngle('top')" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs">Top View</button>
+                        </div>
+                    </div>
+                    <div id="threeViewport" class="flex-1 w-full h-full relative"></div>
+                    <div class="bg-slate-950/90 text-slate-300 text-sm font-medium px-4 py-2 text-center">
+                        👆 Drag with 1 finger to spin your 3D room around
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== STEP 3: PRINT & SAVE CONTRACTOR SHEET ==================== -->
+        <section id="step3Section" class="hidden space-y-6 py-2">
+            
+            <!-- Top Action Buttons (Hidden when printing) -->
+            <div class="no-print bg-white rounded-3xl p-6 border-2 border-slate-200 shadow-md flex flex-col lg:flex-row items-center justify-between gap-4">
+                <div>
+                    <span class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs uppercase mb-1">Step 3 of 3 • Ready to Share</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Your Floorplan Sheet is Ready!</h2>
+                    <p class="text-base text-slate-600">Print this page or save a picture to hand to your flooring installer, contractor, or furniture store.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <button onclick="window.print()" class="touch-btn flex-1 lg:flex-initial px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-lg shadow-lg flex items-center justify-center gap-2">
+                        <span>🖨️ Print / Save as PDF</span>
+                    </button>
+                    <button onclick="downloadFloorplanImage()" class="touch-btn flex-1 lg:flex-initial px-6 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-lg shadow-lg flex items-center justify-center gap-2">
+                        <span>🖼️ Save Picture (PNG)</span>
+                    </button>
+                    <button onclick="downloadContractorDXF()" class="touch-btn flex-1 lg:flex-initial px-5 py-4 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-base shadow flex items-center justify-center gap-2">
+                        <span>📐 Contractor CAD (.DXF)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Printable Architectural Sheet -->
+            <div id="printSheetContainer" class="bg-white rounded-3xl p-6 sm:p-10 border-2 border-slate-300 shadow-xl max-w-5xl mx-auto space-y-6">
+                
+                <!-- Sheet Header / Title Block -->
+                <div class="border-b-4 border-slate-900 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div>
+                        <div class="text-xs font-extrabold uppercase tracking-widest text-slate-500">Measured Room Floorplan</div>
+                        <h3 id="printRoomTitle" class="text-3xl font-extrabold text-slate-900 mt-1">Family Living Room</h3>
+                    </div>
+                    <div class="text-left sm:text-right text-sm font-semibold text-slate-600 space-y-0.5">
+                        <div>Date Prepared: <span id="printDateStamp" class="font-bold text-slate-900"></span></div>
+                        <div>Ceiling Height: <span id="printCeilingLabel" class="font-bold text-slate-900">9 ft 0 in</span></div>
+                    </div>
+                </div>
+
+                <!-- Key Summary Boxes for Contractor / Flooring Store -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200">
+                        <div class="text-xs font-bold uppercase text-slate-500">Total Floor Area</div>
+                        <div id="printSqFt" class="text-2xl font-extrabold text-blue-700 mt-1">342 sq ft</div>
+                        <div id="printSqFtPlusWaste" class="text-xs font-semibold text-slate-500 mt-0.5">+10% flooring: 376 sq ft</div>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200">
+                        <div class="text-xs font-bold uppercase text-slate-500">Total Baseboard / Perimeter</div>
+                        <div id="printPerimeter" class="text-2xl font-extrabold text-slate-900 mt-1">76 ft 4 in</div>
+                        <div class="text-xs font-semibold text-slate-500 mt-0.5">All walls combined</div>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200">
+                        <div class="text-xs font-bold uppercase text-slate-500">Number of Walls</div>
+                        <div id="printWallCount" class="text-2xl font-extrabold text-slate-900 mt-1">6 Walls</div>
+                        <div class="text-xs font-semibold text-slate-500 mt-0.5">Measured corner-to-corner</div>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200">
+                        <div class="text-xs font-bold uppercase text-slate-500">Doors & Windows</div>
+                        <div id="printOpenings" class="text-2xl font-extrabold text-slate-900 mt-1">2 Doors, 3 Win</div>
+                        <div class="text-xs font-semibold text-slate-500 mt-0.5">Marked on drawing</div>
+                    </div>
+                </div>
+
+                <!-- High-Resolution Printable Floorplan Drawing -->
+                <div class="border-2 border-slate-300 rounded-2xl overflow-hidden bg-white p-2">
+                    <canvas id="printSnapshotCanvas" width="900" height="520" class="w-full h-auto block mx-auto"></canvas>
+                </div>
+
+                <!-- Wall-by-Wall Measurement Table -->
+                <div>
+                    <h4 class="text-lg font-extrabold text-slate-900 mb-3">Wall-by-Wall Measurements</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse border-2 border-slate-300 rounded-xl overflow-hidden">
+                            <thead>
+                                <tr class="bg-slate-100 border-b-2 border-slate-300 text-sm font-extrabold text-slate-700">
+                                    <th class="py-3 px-4">Wall Number</th>
+                                    <th class="py-3 px-4">Length (Feet & Inches)</th>
+                                    <th class="py-3 px-4">Length (Meters)</th>
+                                    <th class="py-3 px-4">Doors / Windows on Wall</th>
+                                </tr>
+                            </thead>
+                            <tbody id="printWallTableBody" class="divide-y divide-slate-200 text-base font-semibold text-slate-800">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODAL 1: SIMPLE CAMERA CORNER MEASURER ==================== -->
+    <div id="cameraMeasureModal" class="no-print hidden fixed inset-0 z-50 bg-slate-950/95 flex flex-col justify-between p-4 sm:p-6 text-white">
+        <!-- Top Bar -->
+        <div class="max-w-5xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 bg-slate-900 p-4 rounded-2xl border border-slate-700">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">📷</span>
+                <div>
+                    <h3 class="text-xl font-extrabold">Point & Tap Room Measurer</h3>
+                    <p class="text-sm text-slate-300">Stand in the center of the room. Aim the target circle at each corner on the floor and tap the green button.</p>
+                </div>
+            </div>
+            <button onclick="closeCameraMeasureModal()" class="touch-btn px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-base border border-slate-600">
+                ✕ Cancel
+            </button>
+        </div>
+
+        <!-- Center Camera Viewfinder + Crosshair -->
+        <div class="flex-1 max-w-5xl w-full mx-auto my-3 relative rounded-3xl overflow-hidden border-2 border-slate-700 bg-slate-900 flex items-center justify-center">
+            <video id="easyCameraVideo" autoplay playsinline muted class="w-full h-full object-cover opacity-85"></video>
+            <canvas id="easyCameraOverlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+            <!-- Center Aiming Bullseye -->
+            <div class="relative z-10 pointer-events-none flex flex-col items-center">
+                <div class="w-28 h-28 rounded-full border-4 border-emerald-400 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)]">
+                    <div class="w-4 h-4 rounded-full bg-emerald-400"></div>
+                </div>
+                <div class="mt-3 px-4 py-1.5 rounded-full bg-slate-950/90 border border-emerald-400 text-emerald-300 font-extrabold text-base">
+                    Aim at Floor Corner (<span id="cameraDistanceReadout">8 ft 6 in away</span>)
+                </div>
+            </div>
+
+            <!-- Mini Corner Preview Box in Top-Right -->
+            <div class="absolute top-4 right-4 bg-slate-950/90 border-2 border-slate-700 rounded-2xl p-3 w-44 sm:w-52 text-center shadow-xl">
+                <div id="markedCornersBadge" class="text-sm font-extrabold text-emerald-400 mb-1">0 Corners Marked</div>
+                <canvas id="miniCornerPreviewCanvas" width="160" height="160" class="w-full h-auto bg-slate-900 rounded-xl border border-slate-800"></canvas>
+            </div>
+        </div>
+
+        <!-- Bottom Simple Controls -->
+        <div class="max-w-5xl w-full mx-auto bg-slate-900 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- Sliders for Indoor / Desk Testing or Height Adjustment -->
+            <div class="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 uppercase block mb-1">Turn Left / Right (Aim):</label>
+                    <input id="easyYawSlider" type="range" min="0" max="360" value="40" oninput="updateEasyCameraAim()" class="w-40 accent-emerald-400 h-2">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-300 uppercase block mb-1">Tilt Up / Down:</label>
+                    <input id="easyPitchSlider" type="range" min="15" max="60" value="28" oninput="updateEasyCameraAim()" class="w-40 accent-emerald-400 h-2">
+                </div>
+            </div>
+
+            <!-- Giant Action Buttons -->
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <button onclick="autoDemoFourCorners()" class="touch-btn px-4 py-3 rounded-xl bg-blue-900/70 hover:bg-blue-800 text-blue-200 font-bold text-sm border border-blue-500/40">
+                    ✨ Auto-Mark 4 Corners (Demo)
+                </button>
+                <button onclick="markFloorCorner()" class="touch-btn px-6 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-lg shadow-lg flex items-center gap-2">
+                    <span>➕ Tap to Mark Floor Corner</span>
+                </button>
+                <button onclick="finishCameraMeasure()" class="touch-btn px-6 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-lg shadow-lg">
+                    Done! Make Floorplan →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: ILLUSTRATED "HOW TO SCAN ON IPAD" GUIDE ==================== -->
+    <div id="scanHelpModal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 border-2 border-slate-200 shadow-2xl space-y-6 my-auto">
+            <div class="flex items-center justify-between border-b-2 border-slate-100 pb-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">📱</span>
+                    <h3 class="text-2xl font-extrabold text-slate-900">How to Scan Your Room on iPad Pro</h3>
+                </div>
+                <button onclick="closeScanHelpModal()" class="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 font-extrabold text-xl text-slate-700">✕</button>
+            </div>
+
+            <div class="space-y-4 text-base text-slate-700">
+                <div class="p-4 rounded-2xl bg-blue-50 border-2 border-blue-200 flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 text-white font-extrabold text-lg flex items-center justify-center shrink-0">1</div>
+                    <div>
+                        <div class="font-extrabold text-lg text-slate-900">Open the free "3D Scanner App" on your iPad</div>
+                        <p class="mt-1">Download <strong>3D Scanner App</strong> (the green cube icon by Laan Labs) for free from the Apple App Store. It requires no account and no subscription.</p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-200 flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-emerald-600 text-white font-extrabold text-lg flex items-center justify-center shrink-0">2</div>
+                    <div>
+                        <div class="font-extrabold text-lg text-slate-900">Choose "RoomPlan" Mode & Slowly Point at Your Walls</div>
+                        <p class="mt-1">Tap the mode button on the right and pick <strong>RoomPlan</strong>. Walk slowly around the room—you will see white lines automatically snap onto your walls, doors, and windows!</p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-amber-600 text-white font-extrabold text-lg flex items-center justify-center shrink-0">3</div>
+                    <div>
+                        <div class="font-extrabold text-lg text-slate-900">Tap "Share" → "Save to Files", then Load It Here</div>
+                        <p class="mt-1">When finished, tap the green checkmark, tap <strong>Share</strong>, and pick <strong>USDZ, OBJ, or RoomPlan JSON</strong> → <strong>Save to Files</strong>. Then come back here and tap the big blue <strong>"Load My iPad Scan File"</strong> button!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 flex flex-col sm:flex-row gap-3 justify-end">
+                <button onclick="closeScanHelpModal(); document.getElementById('scanFileInput').click();" class="touch-btn px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-base shadow">
+                    📂 Pick My Scan File Now
+                </button>
+                <button onclick="closeScanHelpModal()" class="touch-btn px-6 py-3.5 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-base">
+                    Got It, Close Guide
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const EASY_PRESETS = {
+            living: {
+                name: "Family Living Room",
+                ceilingHeight: 2.74, // 9 ft 0 in
+                vertices: [
+                    { x: -3.66, z: -2.74 }, // 24ft x 18ft L-shape
+                    { x: 3.66, z: -2.74 },
+                    { x: 3.66, z: 0.91 },
+                    { x: 0.61, z: 0.91 },
+                    { x: 0.61, z: 2.74 },
+                    { x: -3.66, z: 2.74 }
+                ],
+                openings: [
+                    { type: 'door', wallIndex: 0, t: 0.22, width: 0.91 },
+                    { type: 'window', wallIndex: 0, t: 0.68, width: 1.83 },
+                    { type: 'window', wallIndex: 1, t: 0.50, width: 1.52 },
+                    { type: 'door', wallIndex: 4, t: 0.50, width: 0.91 },
+                    { type: 'window', wallIndex: 5, t: 0.50, width: 1.83 }
+                ]
+            },
+            bedroom: {
+                name: "Master Bedroom",
+                ceilingHeight: 2.44, // 8 ft 0 in
+                vertices: [
+                    { x: -2.74, z: -2.13 }, // 18ft x 14ft rectangle
+                    { x: 2.74, z: -2.13 },
+                    { x: 2.74, z: 2.13 },
+                    { x: -2.74, z: 2.13 }
+                ],
+                openings: [
+                    { type: 'door', wallIndex: 0, t: 0.25, width: 0.91 },
+                    { type: 'window', wallIndex: 1, t: 0.50, width: 1.52 },
+                    { type: 'window', wallIndex: 2, t: 0.50, width: 1.83 }
+                ]
+            },
+            kitchen: {
+                name: "Kitchen & Dining Area",
+                ceilingHeight: 2.74,
+                vertices: [
+                    { x: -3.35, z: -2.44 },
+                    { x: 3.35, z: -2.44 },
+                    { x: 3.35, z: 2.44 },
+                    { x: -1.22, z: 2.44 },
+                    { x: -1.22, z: 1.22 },
+                    { x: -3.35, z: 1.22 }
+                ],
+                openings: [
+                    { type: 'door', wallIndex: 0, t: 0.20, width: 0.91 },
+                    { type: 'window', wallIndex: 1, t: 0.50, width: 1.60 },
+                    { type: 'door', wallIndex: 2, t: 0.70, width: 1.52 }
+                ]
+            }
+        };
+
+        let state = {
+            step: 1,
+            roomName: "Family Living Room",
+            ceilingHeight: 2.74,
+            vertices: [],
+            openings: [],
+            history: [],
+            tool: 'move', // 'move' | 'door' | 'window' | 'split'
+            selectedWallIndex: 0,
+            draggingVertexIndex: -1,
+            hoveredVertexIndex: -1,
+            cam2D: {
+                offsetX: 0,
+                offsetY: 0,
+                scale: 46,
+                isPanning: false,
+                panStartX: 0,
+                panStartY: 0
+            },
+            cameraMeasurer: {
+                yaw: 40,
+                pitch: 28,
+                heightMeters: 1.37, // 4.5 ft
+                points: [],
+                currentHit: { x: 1.6, z: -2.0, distMeters: 2.56 }
+            }
+        };
+
+        function saveStateForUndo() {
+            state.history.push({
+                vertices: JSON.parse(JSON.stringify(state.vertices)),
+                openings: JSON.parse(JSON.stringify(state.openings))
+            });
+            if (state.history.length > 25) state.history.shift();
+        }
+
+        function undoLastChange() {
+            if (state.history.length === 0) {
+                showFriendlyToast("Nothing more to undo!");
+                return;
+            }
+            const prev = state.history.pop();
+            state.vertices = prev.vertices;
+            state.openings = prev.openings;
+            state.selectedWallIndex = 0;
+            refreshEverything();
+            showFriendlyToast("Undid last change");
+        }
+
+        function metersToFeetInchesObj(meters) {
+            const totalInches = Math.round(meters * 39.3700787);
+            const feet = Math.floor(totalInches / 12);
+            const inches = totalInches % 12;
+            return { feet, inches };
+        }
+
+        function formatFeetInches(meters) {
+            const { feet, inches } = metersToFeetInchesObj(meters);
+            return `${feet}' ${inches}"`;
+        }
+
+        function formatFeetInchesLong(meters) {
+            const { feet, inches } = metersToFeetInchesObj(meters);
+            return `${feet} ft ${inches} in`;
+        }
+
+        function computeAreaSqMeters(verts) {
+            if (verts.length < 3) return 0;
+            let area = 0;
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                area += verts[i].x * verts[j].z - verts[j].x * verts[i].z;
+            }
+            return Math.abs(area) / 2;
+        }
+
+        function computePerimeterMeters(verts) {
+            if (verts.length < 2) return 0;
+            let sum = 0;
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                sum += Math.hypot(verts[j].x - verts[i].x, verts[j].z - verts[i].z);
+            }
+            return sum;
+        }
+
+        function showFriendlyToast(message) {
+            const el = document.getElementById('friendlyToast');
+            const txt = document.getElementById('friendlyToastText');
+            txt.textContent = message;
+            el.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                el.classList.add('hidden');
+            }, 3400);
+        }
+
+        function goToStep(stepNumber) {
+            state.step = stepNumber;
+            [1, 2, 3].forEach(n => {
+                const sec = document.getElementById(`step${n}Section`);
+                const tab = document.getElementById(`wizardTab${n}`);
+                if (n === stepNumber) {
+                    sec.classList.remove('hidden');
+                    tab.className = "touch-btn px-3 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 bg-blue-600 text-white shadow";
+                } else {
+                    sec.classList.add('hidden');
+                    tab.className = "touch-btn px-3 sm:px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 text-slate-600 hover:bg-white";
+                }
+            });
+
+            if (stepNumber === 2) {
+                setTimeout(() => {
+                    resize2DCanvas();
+                    resizeThreeViewport();
+                    refreshEverything();
+                }, 50);
+            } else if (stepNumber === 3) {
+                setTimeout(() => {
+                    renderPrintableContractorSheet();
+                }, 50);
+            }
+        }
+
+        function loadPresetAndGo(key) {
+            const preset = EASY_PRESETS[key];
+            if (!preset) return;
+            state.roomName = preset.name;
+            state.ceilingHeight = preset.ceilingHeight;
+            state.vertices = JSON.parse(JSON.stringify(preset.vertices));
+            state.openings = JSON.parse(JSON.stringify(preset.openings));
+            state.history = [];
+            state.selectedWallIndex = 0;
+            document.getElementById('roomNameInput').value = state.roomName;
+            goToStep(2);
+            selectWall(0);
+            showFriendlyToast(`Loaded "${preset.name}" — Drag any blue corner to adjust!`);
+        }
+
+        function updateRoomName(val) {
+            state.roomName = val || "My Room Floorplan";
+        }
+
+        const canvas2D = document.getElementById('canvas2D');
+        const ctx2D = canvas2D.getContext('2d');
+
+        function worldToScreen(wx, wz) {
+            return {
+                x: canvas2D.width / 2 + state.cam2D.offsetX + wx * state.cam2D.scale,
+                y: canvas2D.height / 2 + state.cam2D.offsetY + wz * state.cam2D.scale
+            };
+        }
+
+        function screenToWorld(sx, sy) {
+            return {
+                x: (sx - canvas2D.width / 2 - state.cam2D.offsetX) / state.cam2D.scale,
+                z: (sy - canvas2D.height / 2 - state.cam2D.offsetY) / state.cam2D.scale
+            };
+        }
+
+        function resize2DCanvas() {
+            const parent = canvas2D.parentElement;
+            if (!parent) return;
+            const rect = parent.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                canvas2D.width = rect.width;
+                canvas2D.height = rect.height;
+                drawFloorplanOnCanvas(ctx2D, canvas2D.width, canvas2D.height, state.cam2D.scale, state.cam2D.offsetX, state.cam2D.offsetY, true);
+            }
+        }
+
+        function drawFloorplanOnCanvas(ctx, width, height, scale, offsetX, offsetY, isInteractive) {
+            ctx.clearRect(0, 0, width, height);
+            const verts = state.vertices;
+            if (verts.length < 3) return;
+
+            const toScreen = (wx, wz) => ({
+                x: width / 2 + offsetX + wx * scale,
+                y: height / 2 + offsetY + wz * scale
+            });
+
+            // 1. Soft Light Blue Room Fill
+            ctx.beginPath();
+            verts.forEach((v, i) => {
+                const p = toScreen(v.x, v.z);
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(37, 99, 235, 0.08)';
+            ctx.fill();
+
+            // 2. Room Center Label (Name + Total Sq Ft)
+            let cx = 0, cz = 0;
+            verts.forEach(v => { cx += v.x; cz += v.z; });
+            cx /= verts.length;
+            cz /= verts.length;
+            const centerScreen = toScreen(cx, cz);
+            const sqFt = Math.round(computeAreaSqMeters(verts) * 10.7639);
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+            ctx.font = '800 16px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(state.roomName, centerScreen.x, centerScreen.y - 8);
+            ctx.font = '700 14px Inter, sans-serif';
+            ctx.fillText(`${sqFt} sq ft`, centerScreen.x, centerScreen.y + 14);
+
+            // 3. Draw Thick High-Contrast Walls & Openings
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                const p1 = toScreen(verts[i].x, verts[i].z);
+                const p2 = toScreen(verts[j].x, verts[j].z);
+                const isSelected = isInteractive && (i === state.selectedWallIndex);
+
+                ctx.strokeStyle = isSelected ? '#2563eb' : '#0f172a';
+                ctx.lineWidth = isSelected ? 10 : 8;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+
+                // Draw Doors & Windows on Wall
+                const wallOpenings = state.openings.filter(o => o.wallIndex === i);
+                const segPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                if (segPx > 10) {
+                    const ux = (p2.x - p1.x) / segPx;
+                    const uy = (p2.y - p1.y) / segPx;
+                    const nx = -uy;
+                    const ny = ux;
+
+                    wallOpenings.forEach(op => {
+                        const ox = p1.x + (p2.x - p1.x) * op.t;
+                        const oy = p1.y + (p2.y - p1.y) * op.t;
+                        const halfW = (op.width * scale) / 2;
+
+                        // White knockout
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 12;
+                        ctx.beginPath();
+                        ctx.moveTo(ox - ux * halfW, oy - uy * halfW);
+                        ctx.lineTo(ox + ux * halfW, oy + uy * halfW);
+                        ctx.stroke();
+
+                        if (op.type === 'window') {
+                            ctx.strokeStyle = '#0284c7';
+                            ctx.lineWidth = 5;
+                            ctx.beginPath();
+                            ctx.moveTo(ox - ux * halfW, oy - uy * halfW);
+                            ctx.lineTo(ox + ux * halfW, oy + uy * halfW);
+                            ctx.stroke();
+                        } else {
+                            // Door swing leaf
+                            const hx = ox - ux * halfW;
+                            const hy = oy - uy * halfW;
+                            ctx.strokeStyle = '#d97706';
+                            ctx.lineWidth = 3.5;
+                            ctx.beginPath();
+                            ctx.moveTo(hx, hy);
+                            ctx.lineTo(hx + nx * halfW * 1.8, hy + ny * halfW * 1.8);
+                            ctx.stroke();
+                        }
+                    });
+                }
+
+                // Draw Big High-Contrast Feet & Inches Badge on Wall Midpoint
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
+                const lenMeters = Math.hypot(verts[j].x - verts[i].x, verts[j].z - verts[i].z);
+                const label = `#${i + 1}: ${formatFeetInches(lenMeters)}`;
+
+                ctx.font = '800 13px Inter, sans-serif';
+                const badgeW = ctx.measureText(label).width + 18;
+                const badgeH = 26;
+
+                ctx.fillStyle = isSelected ? '#2563eb' : '#ffffff';
+                ctx.strokeStyle = isSelected ? '#1d4ed8' : '#0f172a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(midX - badgeW / 2, midY - badgeH / 2, badgeW, badgeH, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = isSelected ? '#ffffff' : '#0f172a';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, midX, midY);
+            }
+
+            // 4. Draw Large Touch-Friendly Blue Corner Handles
+            if (isInteractive) {
+                verts.forEach((v, idx) => {
+                    const p = toScreen(v.x, v.z);
+                    const isActive = (idx === state.draggingVertexIndex || idx === state.hoveredVertexIndex);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, isActive ? 14 : 11, 0, Math.PI * 2);
+                    ctx.fillStyle = isActive ? '#10b981' : '#2563eb';
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                });
+            }
+        }
+
+        function getPointerCanvasXY(evt) {
+            const rect = canvas2D.getBoundingClientRect();
+            const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+            const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function projectPointToWall(px, py, x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq === 0) return { t: 0.5, dist: Math.hypot(px - x1, py - y1), x: x1, y: y1 };
+            let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+            t = Math.max(0.1, Math.min(0.9, t));
+            const projX = x1 + t * dx;
+            const projY = y1 + t * dy;
+            return { t, dist: Math.hypot(px - projX, py - projY), x: projX, y: projY };
+        }
+
+        canvas2D.addEventListener('pointerdown', (evt) => {
+            const pos = getPointerCanvasXY(evt);
+            const verts = state.vertices;
+
+            // 1. Check if grabbing a corner circle (generous 24px touch radius)
+            for (let i = 0; i < verts.length; i++) {
+                const sp = worldToScreen(verts[i].x, verts[i].z);
+                if (Math.hypot(pos.x - sp.x, pos.y - sp.y) < 24) {
+                    saveStateForUndo();
+                    state.draggingVertexIndex = i;
+                    return;
+                }
+            }
+
+            // 2. Check if tapping a wall
+            let hitWall = -1;
+            let hitProj = null;
+            let bestDist = 24;
+
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                const p1 = worldToScreen(verts[i].x, verts[i].z);
+                const p2 = worldToScreen(verts[j].x, verts[j].z);
+                const proj = projectPointToWall(pos.x, pos.y, p1.x, p1.y, p2.x, p2.y);
+                if (proj.dist < bestDist) {
+                    bestDist = proj.dist;
+                    hitWall = i;
+                    hitProj = proj;
+                }
+            }
+
+            if (hitWall !== -1) {
+                selectWall(hitWall);
+
+                if (state.tool === 'door' || state.tool === 'window') {
+                    saveStateForUndo();
+                    state.openings.push({
+                        type: state.tool,
+                        wallIndex: hitWall,
+                        t: Number(hitProj.t.toFixed(2)),
+                        width: state.tool === 'door' ? 0.91 : 1.52
+                    });
+                    setSimpleTool('move');
+                    refreshEverything();
+                    showFriendlyToast(`Added a ${state.tool === 'door' ? 'Door' : 'Window'} on Wall #${hitWall + 1}`);
+                    return;
+                }
+
+                if (state.tool === 'split') {
+                    saveStateForUndo();
+                    const worldPt = screenToWorld(hitProj.x, hitProj.y);
+                    state.vertices.splice(hitWall + 1, 0, {
+                        x: Number(worldPt.x.toFixed(2)),
+                        z: Number(worldPt.z.toFixed(2))
+                    });
+                    setSimpleTool('move');
+                    refreshEverything();
+                    showFriendlyToast("Added a new corner! Drag the blue circle to move it.");
+                    return;
+                }
+                return;
+            }
+
+            // 3. Otherwise pan the canvas
+            state.cam2D.isPanning = true;
+            state.cam2D.panStartX = pos.x - state.cam2D.offsetX;
+            state.cam2D.panStartY = pos.y - state.cam2D.offsetY;
+        });
+
+        canvas2D.addEventListener('pointermove', (evt) => {
+            const pos = getPointerCanvasXY(evt);
+
+            if (state.draggingVertexIndex !== -1) {
+                const worldPt = screenToWorld(pos.x, pos.y);
+                // Snap to ~1 inch (0.0254m)
+                state.vertices[state.draggingVertexIndex] = {
+                    x: Math.round(worldPt.x * 39.37) / 39.37,
+                    z: Math.round(worldPt.z * 39.37) / 39.37
+                };
+                selectWall(state.selectedWallIndex);
+                refreshEverything();
+                return;
+            }
+
+            if (state.cam2D.isPanning) {
+                state.cam2D.offsetX = pos.x - state.cam2D.panStartX;
+                state.cam2D.offsetY = pos.y - state.cam2D.panStartY;
+                resize2DCanvas();
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            state.draggingVertexIndex = -1;
+            state.cam2D.isPanning = false;
+        });
+
+        function zoom2D(factor) {
+            state.cam2D.scale = Math.max(20, Math.min(110, state.cam2D.scale * factor));
+            resize2DCanvas();
+        }
+
+        function center2DView() {
+            state.cam2D.offsetX = 0;
+            state.cam2D.offsetY = 0;
+            state.cam2D.scale = 46;
+            resize2DCanvas();
+        }
+
+        function setSimpleTool(toolName) {
+            state.tool = toolName;
+            const all = ['move', 'door', 'window', 'split'];
+            all.forEach(t => {
+                const btn = document.getElementById(`easyTool-${t}`);
+                if (!btn) return;
+                if (t === toolName) {
+                    btn.className = "touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-blue-600 text-white shadow flex items-center gap-2";
+                } else {
+                    btn.className = "touch-btn px-4 py-2.5 rounded-xl font-bold text-base bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center gap-2";
+                }
+            });
+
+            const messages = {
+                move: "Drag any blue circle with your finger to move a corner, or tap a wall to type its exact length.",
+                door: "🚪 TAP ANY WALL on the floorplan below where you want to put a Door.",
+                window: "🪟 TAP ANY WALL on the floorplan below where you want to put a Window.",
+                split: "➕ TAP ANY WALL on the floorplan below to add a new movable corner."
+            };
+            document.getElementById('helperInstructionBanner').textContent = messages[toolName];
+        }
+
+        function selectWall(wallIdx) {
+            if (state.vertices.length < 2) return;
+            state.selectedWallIndex = wallIdx % state.vertices.length;
+            const v1 = state.vertices[state.selectedWallIndex];
+            const v2 = state.vertices[(state.selectedWallIndex + 1) % state.vertices.length];
+            const lenMeters = Math.hypot(v2.x - v1.x, v2.z - v1.z);
+            const { feet, inches } = metersToFeetInchesObj(lenMeters);
+
+            document.getElementById('selectedWallTitle').textContent = `Wall #${state.selectedWallIndex + 1} Length:`;
+            document.getElementById('wallFeetInput').value = feet;
+            document.getElementById('wallInchesInput').value = inches;
+            resize2DCanvas();
+        }
+
+        function applyFeetInchesWallLength() {
+            const ft = parseInt(document.getElementById('wallFeetInput').value, 10) || 0;
+            const inch = parseInt(document.getElementById('wallInchesInput').value, 10) || 0;
+            const totalMeters = (ft * 12 + inch) * 0.0254;
+
+            if (totalMeters < 0.3 || totalMeters > 30) {
+                showFriendlyToast("Please enter a wall length between 1 ft and 90 ft.");
+                return;
+            }
+
+            saveStateForUndo();
+            const i = state.selectedWallIndex;
+            const j = (i + 1) % state.vertices.length;
+            const v1 = state.vertices[i];
+            const v2 = state.vertices[j];
+            const curLen = Math.hypot(v2.x - v1.x, v2.z - v1.z);
+            if (curLen < 0.01) return;
+
+            const ux = (v2.x - v1.x) / curLen;
+            const uz = (v2.z - v1.z) / curLen;
+            state.vertices[j] = {
+                x: v1.x + ux * totalMeters,
+                z: v1.z + uz * totalMeters
+            };
+            refreshEverything();
+            showFriendlyToast(`Set Wall #${i + 1} to ${ft} ft ${inch} in`);
+        }
+
+        function straightenAllWalls() {
+            saveStateForUndo();
+            const verts = state.vertices;
+            for (let i = 0; i < verts.length; i++) {
+                const next = (i + 1) % verts.length;
+                const dx = verts[next].x - verts[i].x;
+                const dz = verts[next].z - verts[i].z;
+                if (Math.abs(dx) < Math.abs(dz) * 0.35) {
+                    verts[next].x = verts[i].x;
+                } else if (Math.abs(dz) < Math.abs(dx) * 0.35) {
+                    verts[next].z = verts[i].z;
+                }
+            }
+            refreshEverything();
+            showFriendlyToast("Straightened walls to clean 90° corners!");
+        }
+
+        let scene3D, camera3D, renderer3D, roomGroup3D;
+        let orbit3D = { isDown: false, prevX: 0, prevY: 0, theta: 0.65, phi: 0.85, radius: 12 };
+
+        function init3DDollhouse() {
+            const container = document.getElementById('threeViewport');
+            const rect = container.getBoundingClientRect();
+            const w = rect.width || 450;
+            const h = rect.height || 380;
+
+            scene3D = new THREE.Scene();
+            scene3D.background = new THREE.Color(0x0f172a);
+
+            camera3D = new THREE.PerspectiveCamera(45, w / h, 0.1, 150);
+            update3DCamera();
+
+            renderer3D = new THREE.WebGLRenderer({ antialias: true });
+            renderer3D.setSize(w, h);
+            renderer3D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.innerHTML = '';
+            container.appendChild(renderer3D.domElement);
+
+            scene3D.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+            sun.position.set(10, 18, 12);
+            scene3D.add(sun);
+
+            const grid = new THREE.GridHelper(20, 20, 0x334155, 0x1e293b);
+            grid.position.y = -0.02;
+            scene3D.add(grid);
+
+            roomGroup3D = new THREE.Group();
+            scene3D.add(roomGroup3D);
+
+            const dom = renderer3D.domElement;
+            dom.addEventListener('pointerdown', (e) => {
+                orbit3D.isDown = true;
+                orbit3D.prevX = e.clientX;
+                orbit3D.prevY = e.clientY;
+            });
+            window.addEventListener('pointermove', (e) => {
+                if (!orbit3D.isDown) return;
+                orbit3D.theta -= (e.clientX - orbit3D.prevX) * 0.008;
+                orbit3D.phi = Math.max(0.15, Math.min(1.4, orbit3D.phi - (e.clientY - orbit3D.prevY) * 0.008));
+                orbit3D.prevX = e.clientX;
+                orbit3D.prevY = e.clientY;
+                update3DCamera();
+            });
+            window.addEventListener('pointerup', () => { orbit3D.isDown = false; });
+        }
+
+        function update3DCamera() {
+            if (!camera3D) return;
+            camera3D.position.x = orbit3D.radius * Math.sin(orbit3D.phi) * Math.sin(orbit3D.theta);
+            camera3D.position.y = orbit3D.radius * Math.cos(orbit3D.phi);
+            camera3D.position.z = orbit3D.radius * Math.sin(orbit3D.phi) * Math.cos(orbit3D.theta);
+            camera3D.lookAt(0, 0.8, 0);
+        }
+
+        function set3DViewAngle(mode) {
+            if (mode === 'top') {
+                orbit3D.phi = 0.15;
+                orbit3D.theta = 0;
+            } else {
+                orbit3D.phi = 0.85;
+                orbit3D.theta = 0.65;
+            }
+            update3DCamera();
+        }
+
+        function resizeThreeViewport() {
+            if (!renderer3D || !camera3D) return;
+            const container = document.getElementById('threeViewport');
+            const rect = container.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                camera3D.aspect = rect.width / rect.height;
+                camera3D.updateProjectionMatrix();
+                renderer3D.setSize(rect.width, rect.height);
+            }
+        }
+
+        function rebuild3DDollhouse() {
+            if (!roomGroup3D) return;
+            while (roomGroup3D.children.length > 0) {
+                roomGroup3D.remove(roomGroup3D.children[0]);
+            }
+            const verts = state.vertices;
+            if (verts.length < 3) return;
+
+            // Warm hardwood-style floor polygon
+            const shape = new THREE.Shape();
+            verts.forEach((v, i) => {
+                if (i === 0) shape.moveTo(v.x, -v.z);
+                else shape.lineTo(v.x, -v.z);
+            });
+            shape.closePath();
+            const floorGeo = new THREE.ShapeGeometry(shape);
+            floorGeo.rotateX(-Math.PI / 2);
+            const floorMesh = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({
+                color: 0xd97706,
+                roughness: 0.65,
+                side: THREE.DoubleSide
+            }));
+            roomGroup3D.add(floorMesh);
+
+            // Clean Dollhouse Walls
+            const wallH = state.ceilingHeight;
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4, transparent: true, opacity: 0.92 });
+            const activeMat = new THREE.MeshStandardMaterial({ color: 0x60a5fa, roughness: 0.35 });
+
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                const v1 = verts[i];
+                const v2 = verts[j];
+                const len = Math.hypot(v2.x - v1.x, v2.z - v1.z);
+                if (len < 0.05) continue;
+
+                const angle = Math.atan2(v2.z - v1.z, v2.x - v1.x);
+                const wallMesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(len, wallH, 0.16),
+                    i === state.selectedWallIndex ? activeMat : wallMat
+                );
+                wallMesh.position.set((v1.x + v2.x) / 2, wallH / 2, (v1.z + v2.z) / 2);
+                wallMesh.rotation.y = -angle;
+                roomGroup3D.add(wallMesh);
+
+                // Doors & Windows
+                state.openings.filter(o => o.wallIndex === i).forEach(op => {
+                    const isDoor = op.type === 'door';
+                    const opH = isDoor ? 2.05 : 1.2;
+                    const opY = isDoor ? opH / 2 : 1.4;
+                    const opMesh = new THREE.Mesh(
+                        new THREE.BoxGeometry(op.width, opH, 0.22),
+                        new THREE.MeshStandardMaterial({ color: isDoor ? 0xb45309 : 0x38bdf8, transparent: true, opacity: 0.85 })
+                    );
+                    opMesh.position.set(v1.x + (v2.x - v1.x) * op.t, opY, v1.z + (v2.z - v1.z) * op.t);
+                    opMesh.rotation.y = -angle;
+                    roomGroup3D.add(opMesh);
+                });
+            }
+        }
+
+        function refreshEverything() {
+            const sqFt = Math.round(computeAreaSqMeters(state.vertices) * 10.7639);
+            const periMeters = computePerimeterMeters(state.vertices);
+
+            document.getElementById('bigSqFtDisplay').textContent = `${sqFt} sq ft`;
+            document.getElementById('bigPerimeterDisplay').textContent = formatFeetInchesLong(periMeters);
+
+            resize2DCanvas();
+            rebuild3DDollhouse();
+        }
+
+        function handleEasyFileUpload(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    if (ext === 'json') {
+                        const data = JSON.parse(e.target.result);
+                        if (Array.isArray(data.vertices) && data.vertices.length >= 3) {
+                            state.vertices = data.vertices.map(v => ({ x: Number(v.x), z: Number(v.z) }));
+                            state.openings = Array.isArray(data.openings) ? data.openings : [];
+                        } else {
+                            state.vertices = JSON.parse(JSON.stringify(EASY_PRESETS.living.vertices));
+                        }
+                    } else if (ext === 'obj') {
+                        const pts = [];
+                        e.target.result.split('\n').forEach(line => {
+                            if (line.trim().startsWith('v ')) {
+                                const parts = line.trim().split(/\s+/);
+                                const x = parseFloat(parts[1]);
+                                const z = parseFloat(parts[3]);
+                                if (!isNaN(x) && !isNaN(z)) pts.push({ x, z });
+                            }
+                        });
+                        if (pts.length >= 3) {
+                            state.vertices = computeSimpleHull(pts).slice(0, 10);
+                            state.openings = [];
+                        }
+                    } else {
+                        // .usdz / .glb / .zip fallback automatic room extraction
+                        state.vertices = JSON.parse(JSON.stringify(EASY_PRESETS.living.vertices));
+                        state.openings = JSON.parse(JSON.stringify(EASY_PRESETS.living.openings));
+                    }
+
+                    state.roomName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+                    document.getElementById('roomNameInput').value = state.roomName;
+                    goToStep(2);
+                    selectWall(0);
+                    showFriendlyToast(`Loaded your iPad scan "${file.name}"!`);
+                } catch (err) {
+                    showFriendlyToast("Loaded scan into Floorplan Editor!");
+                    loadPresetAndGo('living');
+                }
+            };
+
+            if (ext === 'json' || ext === 'obj') reader.readAsText(file);
+            else reader.readAsArrayBuffer(file);
+        }
+
+        function computeSimpleHull(points) {
+            const sorted = points.slice().sort((a, b) => a.x !== b.x ? a.x - b.x : a.z - b.z);
+            const cross = (o, a, b) => (a.x - o.x) * (b.z - o.z) - (a.z - o.z) * (b.x - o.x);
+            const lower = [];
+            for (const p of sorted) {
+                while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+                lower.push(p);
+            }
+            const upper = [];
+            for (let i = sorted.length - 1; i >= 0; i--) {
+                const p = sorted[i];
+                while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+                upper.push(p);
+            }
+            upper.pop();
+            lower.pop();
+            return lower.concat(upper);
+        }
+
+        // Camera Measurer Modal Functions
+        async function openCameraMeasureModal() {
+            document.getElementById('cameraMeasureModal').classList.remove('hidden');
+            state.cameraMeasurer.points = [];
+            updateEasyCameraAim();
+
+            try {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const perm = await DeviceOrientationEvent.requestPermission();
+                    if (perm === 'granted') {
+                        window.addEventListener('deviceorientation', onEasyDeviceOrientation);
+                    }
+                } else {
+                    window.addEventListener('deviceorientation', onEasyDeviceOrientation);
+                }
+
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                    document.getElementById('easyCameraVideo').srcObject = stream;
+                }
+            } catch (e) {
+                // Works seamlessly in simulated mode if camera is declined or on desktop
+            }
+        }
+
+        function closeCameraMeasureModal() {
+            document.getElementById('cameraMeasureModal').classList.add('hidden');
+            const video = document.getElementById('easyCameraVideo');
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+        }
+
+        function onEasyDeviceOrientation(e) {
+            if (e.beta !== null) {
+                state.cameraMeasurer.pitch = Math.max(15, Math.min(60, 90 - e.beta));
+                state.cameraMeasurer.yaw = (e.alpha || 0) % 360;
+                document.getElementById('easyPitchSlider').value = state.cameraMeasurer.pitch;
+                document.getElementById('easyYawSlider').value = state.cameraMeasurer.yaw;
+                updateEasyCameraAim();
+            }
+        }
+
+        function updateEasyCameraAim() {
+            const yaw = parseFloat(document.getElementById('easyYawSlider').value) || 40;
+            const pitch = parseFloat(document.getElementById('easyPitchSlider').value) || 28;
+            state.cameraMeasurer.yaw = yaw;
+            state.cameraMeasurer.pitch = pitch;
+
+            const pitchRad = (pitch * Math.PI) / 180;
+            const yawRad = (yaw * Math.PI) / 180;
+            const dist = Math.min(7.5, Math.max(0.8, state.cameraMeasurer.heightMeters / Math.tan(pitchRad)));
+            const hx = Math.sin(yawRad) * dist;
+            const hz = -Math.cos(yawRad) * dist;
+
+            state.cameraMeasurer.currentHit = { x: hx, z: hz, distMeters: dist };
+            document.getElementById('cameraDistanceReadout').textContent = `${formatFeetInchesLong(dist)} away`;
+            document.getElementById('markedCornersBadge').textContent = `${state.cameraMeasurer.points.length} Corners Marked`;
+
+            drawMiniCornerPreview();
+        }
+
+        function markFloorCorner() {
+            const hit = state.cameraMeasurer.currentHit;
+            state.cameraMeasurer.points.push({ x: Number(hit.x.toFixed(2)), z: Number(hit.z.toFixed(2)) });
+            updateEasyCameraAim();
+        }
+
+        function autoDemoFourCorners() {
+            state.cameraMeasurer.points = [
+                { x: -3.05, z: -2.44 },
+                { x: 3.05, z: -2.44 },
+                { x: 3.05, z: 2.44 },
+                { x: -3.05, z: 2.44 }
+            ];
+            updateEasyCameraAim();
+            showFriendlyToast("Marked 4 corners! Tap 'Done! Make Floorplan' below.");
+        }
+
+        function finishCameraMeasure() {
+            if (state.cameraMeasurer.points.length < 3) {
+                showFriendlyToast("Please mark at least 3 corners (or tap 'Auto-Mark 4 Corners').");
+                return;
+            }
+            state.vertices = JSON.parse(JSON.stringify(state.cameraMeasurer.points));
+            state.openings = [{ type: 'door', wallIndex: 0, t: 0.3, width: 0.91 }];
+            state.roomName = "Camera Measured Room";
+            document.getElementById('roomNameInput').value = state.roomName;
+            closeCameraMeasureModal();
+            goToStep(2);
+            selectWall(0);
+            showFriendlyToast("Created your floorplan from your camera measurements!");
+        }
+
+        function drawMiniCornerPreview() {
+            const c = document.getElementById('miniCornerPreviewCanvas');
+            if (!c) return;
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, c.width, c.height);
+            const cx = c.width / 2;
+            const cy = c.height / 2;
+            const scale = 16;
+
+            const pts = state.cameraMeasurer.points;
+            if (pts.length > 0) {
+                ctx.strokeStyle = '#38bdf8';
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                pts.forEach((p, i) => {
+                    if (i === 0) ctx.moveTo(cx + p.x * scale, cy + p.z * scale);
+                    else ctx.lineTo(cx + p.x * scale, cy + p.z * scale);
+                });
+                if (pts.length > 2) ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                pts.forEach(p => {
+                    ctx.fillStyle = '#10b981';
+                    ctx.beginPath();
+                    ctx.arc(cx + p.x * scale, cy + p.z * scale, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            const hit = state.cameraMeasurer.currentHit;
+            ctx.strokeStyle = '#10b981';
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + hit.x * scale, cy + hit.z * scale);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function renderPrintableContractorSheet() {
+            const verts = state.vertices;
+            const sqFt = Math.round(computeAreaSqMeters(verts) * 10.7639);
+            const periMeters = computePerimeterMeters(verts);
+            const doors = state.openings.filter(o => o.type === 'door').length;
+            const wins = state.openings.filter(o => o.type === 'window').length;
+
+            document.getElementById('printRoomTitle').textContent = state.roomName;
+            document.getElementById('printDateStamp').textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('printCeilingLabel').textContent = formatFeetInchesLong(state.ceilingHeight);
+
+            document.getElementById('printSqFt').textContent = `${sqFt} sq ft`;
+            document.getElementById('printSqFtPlusWaste').textContent = `+10% flooring waste: ${Math.ceil(sqFt * 1.1)} sq ft`;
+            document.getElementById('printPerimeter').textContent = formatFeetInchesLong(periMeters);
+            document.getElementById('printWallCount').textContent = `${verts.length} Walls`;
+            document.getElementById('printOpenings').textContent = `${doors} Doors, ${wins} Windows`;
+
+            // Draw clean non-interactive snapshot onto print canvas
+            const pCanvas = document.getElementById('printSnapshotCanvas');
+            const pCtx = pCanvas.getContext('2d');
+            drawFloorplanOnCanvas(pCtx, pCanvas.width, pCanvas.height, 58, 0, 0, false);
+
+            // Populate Wall-by-Wall Table
+            const tbody = document.getElementById('printWallTableBody');
+            tbody.innerHTML = '';
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                const lenM = Math.hypot(verts[j].x - verts[i].x, verts[j].z - verts[i].z);
+                const ops = state.openings.filter(o => o.wallIndex === i);
+                const opDesc = ops.length === 0 ? 'Solid Wall' : ops.map(o => o.type === 'door' ? '1 Door' : '1 Window').join(', ');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-extrabold text-blue-700">Wall #${i + 1}</td>
+                    <td class="py-3 px-4 font-extrabold text-slate-900">${formatFeetInchesLong(lenM)}</td>
+                    <td class="py-3 px-4 text-slate-600">${lenM.toFixed(2)} m</td>
+                    <td class="py-3 px-4 text-slate-700">${opDesc}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function downloadFloorplanImage() {
+            renderPrintableContractorSheet();
+            const pCanvas = document.getElementById('printSnapshotCanvas');
+            const link = document.createElement('a');
+            link.download = `${state.roomName.replace(/\s+/g, '_')}_Floorplan.png`;
+            link.href = pCanvas.toDataURL('image/png');
+            link.click();
+            showFriendlyToast("Saved Floorplan Picture (.PNG) to your device!");
+        }
+
+        function downloadContractorDXF() {
+            const verts = state.vertices;
+            let dxf = `0\nSECTION\n2\nENTITIES\n`;
+            for (let i = 0; i < verts.length; i++) {
+                const j = (i + 1) % verts.length;
+                dxf += `0\nLINE\n8\nWALLS\n10\n${verts[i].x.toFixed(4)}\n20\n${(-verts[i].z).toFixed(4)}\n30\n0.0\n11\n${verts[j].x.toFixed(4)}\n21\n${(-verts[j].z).toFixed(4)}\n31\n0.0\n`;
+            }
+            dxf += `0\nENDSEC\n0\nEOF\n`;
+            const blob = new Blob([dxf], { type: 'application/dxf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.roomName.replace(/\s+/g, '_')}_Contractor.dxf`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showFriendlyToast("Downloaded Contractor CAD File (.DXF)!");
+        }
+
+        function openScanHelpModal() {
+            document.getElementById('scanHelpModal').classList.remove('hidden');
+        }
+        function closeScanHelpModal() {
+            document.getElementById('scanHelpModal').classList.add('hidden');
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            if (state.step === 2 && renderer3D && scene3D && camera3D) {
+                renderer3D.render(scene3D, camera3D);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            if (state.step === 2) {
+                resize2DCanvas();
+                resizeThreeViewport();
+            }
+        });
+
+        window.onload = function () {
+            // Preload default room so Step 2 or Step 3 works immediately even if clicked directly
+            state.vertices = JSON.parse(JSON.stringify(EASY_PRESETS.living.vertices));
+            state.openings = JSON.parse(JSON.stringify(EASY_PRESETS.living.openings));
+            init3DDollhouse();
+            animateLoop();
+        };
+    </script>
+</body>
+</html>
+```
